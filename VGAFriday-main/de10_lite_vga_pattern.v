@@ -87,6 +87,7 @@ vga_pll u1(
 
 vga_controller vga_ins(.iRST_n(KEY[0]),.start_n(KEY[1]),
                       .iVGA_CLK(VGA_CTRL_CLK),
+							 .MAX10_CLK1_50(MAX10_CLK1_50),
                       .oHS(VGA_HS),
                       .oVS(VGA_VS),
                       .oVGA_B(VGA_B),

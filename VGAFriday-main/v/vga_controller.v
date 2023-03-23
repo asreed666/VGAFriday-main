@@ -1,6 +1,7 @@
 module vga_controller(iRST_n,
 							 start_n,
                       iVGA_CLK,
+							 MAX10_CLK1_50,
                       oBLANK_n,
                       oHS,
                       oVS,
@@ -10,6 +11,7 @@ module vga_controller(iRST_n,
 input iRST_n;
 input start_n;
 input iVGA_CLK;
+input MAX10_CLK1_50;
 output reg oBLANK_n;
 output reg oHS;
 output reg oVS;
@@ -18,8 +20,13 @@ output [3:0] oVGA_G;
 output [3:0] oVGA_R;                       
 ///////// ////                     
 reg [18:0] ADDR ;
+wire [11:0] channel1;
+wire [11:0] channel2;
+wire [11:0] channel3;
+wire [11:0] channel4;
 wire VGA_CLK_n;
 wire [7:0] index;
+wire [23:0] textRGB;
 wire [23:0] bgr_data_raw;
 wire cBLANK_n,cHS,cVS,rst;
 wire [10:0] xPos;
@@ -46,7 +53,7 @@ integer paddleHeight = 40;
 reg [11:0] charAddr;
 reg [7:0] charData;
 reg char_nWr;
-//`define INCLUSIVE
+`define INCLUSIVE
 
 
 ////
@@ -61,17 +68,23 @@ video_sync_generator LTM_ins (.vga_clk(iVGA_CLK),
 										.yPos(yPos)
 										);
 txtScreen txtScreen(
-      .hp(xPos),
-		.vp(yPos),
-		.addr(charAddr),
-		.data(charData),
-		.nWr (char_nWr),
-      .pClk(iVGA_CLK),
-		.nblnk(cBLANK_n),
-		.pix(textRGB)
-      );
-
-
+										.hp(xPos),
+										.vp(yPos),
+										.addr(charAddr),	
+										.data(charData),
+										.nWr (char_nWr),
+										.pClk(iVGA_CLK),
+										.nblnk(cBLANK_n),
+										.pix(textRGB)
+										);
+paddles paddles(					.MAX10_CLK1_50(MAX10_CLK1_50),
+										.reset(rst),
+										.channel1(channel1),
+										.channel2(channel2),
+										.channel3(channel3),
+										.channel4(channel4)
+										);
+										
 ////Addresss generator
 always@(posedge iVGA_CLK,negedge iRST_n)
 begin
@@ -96,7 +109,7 @@ begin
 			currp1Score = -1;
 			currp2Score = 0;
 		end
-	else
+	else if (cBLANK_n)
 		begin  
 	   // This block draws stuff on the display
 		if ((xPos >= plyr1PaddleX) && (xPos < plyr1PaddleX + paddleWidth) &&
@@ -149,7 +162,10 @@ begin
 			if (stateCount == 4'b0000)
 				begin
 					charAddr <= 12'h05C;
-					charData <= player1Score + 8'h30;
+					if (player1Score > 9)
+						charData <= 8'h57;
+					else
+						charData <= player1Score + 8'h30;
 					char_nWr <= 1'b1;
 					stateCount <= 4'b0001;
 				end
@@ -165,8 +181,11 @@ begin
 				end
 			else if (stateCount == 4'b0100)
 				begin
-					charAddr <= 12'h069;
-					charData <= player2Score + 8'h30;
+					charAddr <= 12'h06B;
+					if (player2Score > 9)
+						charData <=8'h57;
+					else
+						charData <= player2Score + 8'h30;
 					char_nWr <= 1'b1;
 					stateCount <= 4'b0101;
 				end
@@ -211,7 +230,7 @@ begin
 
 	// vertical bounce
 	      if (ballY > VIDEO_H - 10'd25) ballYspeed = - ballSpeed;
-	      if (ballY < 10'd100) ballYspeed = ballSpeed;
+	      if (ballY < 10'd92) ballYspeed = ballSpeed;
 	
 	// bouncing off player 1 paddle
 		  if ((ballX > plyr1PaddleX) && (ballX < plyr1PaddleX + paddleWidth) && 
@@ -232,13 +251,14 @@ begin
 			  if (player1Score < 10)
 				begin
 					player1Score = player1Score + 1;
+					ballXspeed = -ballSpeed;
 					ballX = 319;
 				end
 			  else if (player1Score >= 10)
 				begin
 					player1Wins <= 1'b1;
 					ballXspeed = -ballSpeed;
-
+					ballX = 319;
 				end
 			end
 		  if (ballX <= 10) 
@@ -246,6 +266,7 @@ begin
 			  if (player2Score < 10)
 				begin
 					ballX = 319;
+					ballXspeed = ballSpeed;
 					player2Score = player2Score + 1;
 				end
 				
@@ -259,8 +280,10 @@ begin
 		
 		  ballX = ballX + ballXspeed;
 		  ballY = ballY + ballYspeed;
-		  plyr1PaddleY <= ballY - paddleHeight/2;
-//			plyr2PaddleY <= ballY - paddleHeight/2;
+//		  plyr1PaddleY <= ballY - paddleHeight/2; // player 1 AI
+//			plyr2PaddleY <= ballY - paddleHeight/2; // player 2 AI
+			plyr1PaddleY <= channel1[11:2]/2;
+			plyr2PaddleY <= channel2[11:2]/2;
 		end
 end
 
