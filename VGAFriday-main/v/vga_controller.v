@@ -1,5 +1,6 @@
 module vga_controller(iRST_n,
 							 start_n,
+							 switches,
                       iVGA_CLK,
 							 MAX10_CLK1_50,
                       oBLANK_n,
@@ -12,6 +13,7 @@ input iRST_n;
 input start_n;
 input iVGA_CLK;
 input MAX10_CLK1_50;
+input [9:0] switches;
 output reg oBLANK_n;
 output reg oHS;
 output reg oVS;
@@ -53,7 +55,7 @@ integer paddleHeight = 40;
 reg [11:0] charAddr;
 reg [7:0] charData;
 reg char_nWr;
-`define INCLUSIVE
+//`define INCLUSIVE
 
 
 ////
@@ -141,7 +143,7 @@ begin
 					(yPos % 22 < 11)) // dashed line light grey
 			bgr_data <= {8'hcc,8'hcc, 8'hcc};
 		// The ball
-		else if ((xPos >= ballX) && (xPos < ballX + 5) && (yPos >= ballY) && (yPos < ballY + 5))
+		else if ((xPos >= ballX) && (xPos < ballX + 10) && (yPos >= ballY) && (yPos < ballY + 10))
 			bgr_data <= 24'hffffff;
 		else if (textRGB == 1'b1) bgr_data = {8'h00, 8'hcc, 8'hcc}; // yellow text
 		// default to black
@@ -225,7 +227,7 @@ begin
 	else 
 		begin
 	// horizontal bounce
-//	else if (ballX > VIDEO_W - 11'd02) ballXspeed = - ballSpeed;
+//	else if (ballX > VIDEO_W - 11'd0) ballXspeed = - ballSpeed;
 //	else if (ballX < 11'd2) ballXspeed = ballSpeed;
 
 	// vertical bounce
