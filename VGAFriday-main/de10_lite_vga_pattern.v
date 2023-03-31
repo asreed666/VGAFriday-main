@@ -88,11 +88,13 @@ vga_pll u1(
 vga_controller vga_ins(.iRST_n(KEY[0]),.start_n(KEY[1]), .switches(SW),
                       .iVGA_CLK(VGA_CTRL_CLK),
 							 .MAX10_CLK1_50(MAX10_CLK1_50),
+							 .oBLANK_n(ARDUINO_IO[0]),
                       .oHS(VGA_HS),
                       .oVS(VGA_VS),
                       .oVGA_B(VGA_B),
                       .oVGA_G(VGA_G),
-                      .oVGA_R(VGA_R));	
+                      .oVGA_R(VGA_R),
+							 .audioOut(ARDUINO_IO[7]));	
 
 
 

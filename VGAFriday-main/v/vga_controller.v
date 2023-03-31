@@ -8,7 +8,8 @@ module vga_controller(iRST_n,
                       oVS,
                       oVGA_B,
                       oVGA_G,
-                      oVGA_R);
+                      oVGA_R,
+							 audioOut);
 input iRST_n;
 input start_n;
 input iVGA_CLK;
@@ -19,7 +20,8 @@ output reg oHS;
 output reg oVS;
 output [3:0] oVGA_B;
 output [3:0] oVGA_G;  
-output [3:0] oVGA_R;                       
+output [3:0] oVGA_R;
+output reg audioOut;                       
 ///////// ////                     
 reg [18:0] ADDR ;
 wire [11:0] channel1;
@@ -55,6 +57,18 @@ integer paddleHeight = 40;
 reg [11:0] charAddr;
 reg [7:0] charData;
 reg char_nWr;
+integer titleBar = 95;
+
+integer blip = 0;
+integer blop = 0;
+integer collblip = 0;
+integer collblop = 0;
+reg audioblip = 0;
+reg audioblop = 0;
+integer blipcnt = 0;
+integer blopcnt = 0;
+
+
 //`define INCLUSIVE
 
 
@@ -211,7 +225,38 @@ begin
 		else
 			stateCount = 4'b0000;
 	end
+// Make a noise
+	if (((blip) || (collblip)) && switches[0])
+	    begin			        
+        if (blipcnt < 5000000)
+				begin
+					blipcnt = blipcnt + 1;
+					if ((blipcnt % 20000) == 0) audioblip <= ~audioblip;
+				collblip = 1;
+				end
+        else
+				begin
+					collblip = 0;
+					blipcnt = 0;
+				end
+		 end	
+		 if (((blop) || (collblop)) && switches[0])
+	    begin			        
+        if (blopcnt < 10000000)
+				begin
+					blopcnt = blopcnt + 1;
+					if ((blopcnt % 100000) == 0) audioblop <= ~audioblop;
+				collblop = 1;
+				end
+        else
+				begin
+					collblop = 0;
+					blopcnt = 0;
+				end
+		 end
+		 audioOut = audioblip ^ audioblop;
 end
+
 
 always @(posedge cVS)
 begin
@@ -223,9 +268,13 @@ begin
 		 ballX = 319;
 		 ballY = 239;
 		 ballXspeed = -ballSpeed;
+		 blip = 0;
+       blop = 0;
 	end
 	else 
 		begin
+		blip = 0;
+		blop = 0;
 	// horizontal bounce
 //	else if (ballX > VIDEO_W - 11'd0) ballXspeed = - ballSpeed;
 //	else if (ballX < 11'd2) ballXspeed = ballSpeed;
@@ -240,6 +289,7 @@ begin
 			begin
 				ballXspeed = ballSpeed;
 				ballX = ballX + paddleWidth;
+				blip = 1;
 			end
 	// bouncing off player 2 paddle
 		  if ((ballX > plyr2PaddleX) && (ballX < plyr2PaddleX + paddleWidth) && 
@@ -247,6 +297,7 @@ begin
 			begin
 				ballXspeed = - ballSpeed;
 				ballX = ballX - ballXspeed - paddleWidth;
+				blip = 1;
 			end
 		  if (ballX >= VIDEO_W - 11'd15) 
 			begin
@@ -255,12 +306,14 @@ begin
 					player1Score = player1Score + 1;
 					ballXspeed = -ballSpeed;
 					ballX = 319;
+					blop = 1;
 				end
 			  else if (player1Score >= 10)
 				begin
 					player1Wins <= 1'b1;
 					ballXspeed = -ballSpeed;
 					ballX = 319;
+					blop = 1;
 				end
 			end
 		  if (ballX <= 10) 
@@ -282,10 +335,10 @@ begin
 		
 		  ballX = ballX + ballXspeed;
 		  ballY = ballY + ballYspeed;
-//		  plyr1PaddleY <= ballY - paddleHeight/2; // player 1 AI
-//			plyr2PaddleY <= ballY - paddleHeight/2; // player 2 AI
-			plyr1PaddleY <= channel1[11:2]/2;
-			plyr2PaddleY <= channel2[11:2]/2;
+//		plyr1PaddleY <= ballY - paddleHeight/2; // player 1 AI
+//		plyr2PaddleY <= ballY - paddleHeight/2; // player 2 AI
+			plyr1PaddleY <= titleBar + channel1[11:2]/3;
+			plyr2PaddleY <= titleBar + channel2[11:2]/3;
 		end
 end
 
